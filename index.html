@@ -1183,11 +1183,14 @@ hr.divider { border:none; border-top:1px solid var(--border); margin:32px 0; }
 
 /* ══ TABLET (768–1024px) — minor tweaks only ══ */
 @media(min-width:768px) and (max-width:1024px){
-  .content { padding:40px 32px; }
+  .sidebar { display:none !important; }
+  .app { grid-template-columns:1fr; }
+  .content { margin-left:0; padding:40px 32px; }
   nav { padding:0 24px; }
   .nav-links a { font-size:10px; padding:7px 10px; }
   .page-title { font-size:42px; }
   .grid-4 { grid-template-columns:1fr 1fr; }
+  .rank-card { grid-column:span 2; }
 }
 
 /* ══ MOBILE (under 768px) — full rebuild ══ */
@@ -3003,6 +3006,10 @@ Memory — Last Noted Weakness: ${mem.notedWeakness||'None'}
 Memory — Last Noted Goal: ${mem.notedGoal||'None'}
 Memory — Last Challenge Given: ${mem.lastChallenge||'None'}
 Conversation Count: ${mem.conversationCount}
+War Room — Why Empire Exists: ${S.warRoom&&S.warRoom.why||'Not set'}
+War Room — Person He Refuses To Become: ${S.warRoom&&S.warRoom.refuse||'Not set'}
+War Room — Future Vision: ${S.warRoom&&S.warRoom.future||'Not set'}
+Exercise Totals: Steps=${S.exTotals&&S.exTotals.steps||0}, Squats=${S.exTotals&&S.exTotals.squats||0}, Situps=${S.exTotals&&S.exTotals.situps||0}, Meditation=${S.exTotals&&S.exTotals.meditation||0}min
 
 ═══ YOUR RANK ${rank} CONFIGURATION ═══
 Tone: ${p.tone}
@@ -3012,7 +3019,7 @@ Phase 3 Sentence Rule (NON-NEGOTIABLE): ${p.sentenceStyle}
 Unlocked Intelligence Features: ${unlockedFeatures}
 
 ═══ BEHAVIORAL RULES ═══
-1. Responses under 130 words. No padding.
+1. Responses under 280 words. No padding. Be real, be sharp, be useful.
 2. ${rank<=1?'End with ONE direct order.':rank<=3?'End with ONE sharp challenge — no softness.':rank<=5?'End with ONE weighted strategic question.':'End with ONE declaration. No questions at Emperor rank.'}
 3. Reference his actual data numbers. Never be generic.
 4. STRICTLY follow the Phase 3 Sentence Rule. It defines Diana\'s voice at this rank.
@@ -3032,7 +3039,7 @@ Unlocked Intelligence Features: ${unlockedFeatures}
       headers:{ 'Content-Type':'application/json' },
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514',
-        max_tokens:200,
+        max_tokens:500,
         system: systemPrompt,
         messages: messages
       })
@@ -4218,18 +4225,18 @@ let musicMuted = false;
 let currentScreen = 'dashboard';
 let audioNodes = [];
 
-// Screen mood configs — frequency, pulse rate, intensity
+// Screen mood configs — mid-range frequencies, loud enough for phone/tablet speakers
 const SCREEN_MOODS = {
-  dashboard:     { bassFreq:55,  pulseFreq:0.08, harmonics:[1,2,3],    gainLevel:0.18, filterFreq:180, label:'focused'    },
-  audit:         { bassFreq:45,  pulseFreq:0.05, harmonics:[1,1.5,2],  gainLevel:0.22, filterFreq:140, label:'ceremonial' },
-  warroom:       { bassFreq:40,  pulseFreq:0.12, harmonics:[1,2,4],    gainLevel:0.28, filterFreq:120, label:'intense'    },
-  failures:      { bassFreq:42,  pulseFreq:0.04, harmonics:[1,1.8,2.5],gainLevel:0.16, filterFreq:110, label:'dark'       },
-  ideas:         { bassFreq:65,  pulseFreq:0.06, harmonics:[1,2,3,4],  gainLevel:0.14, filterFreq:250, label:'creative'   },
-  notifications: { bassFreq:50,  pulseFreq:0.07, harmonics:[1,2],      gainLevel:0.15, filterFreq:160, label:'alert'      },
-  ranks:         { bassFreq:48,  pulseFreq:0.09, harmonics:[1,2,3],    gainLevel:0.20, filterFreq:170, label:'imperial'   },
-  history:       { bassFreq:52,  pulseFreq:0.05, harmonics:[1,2],      gainLevel:0.15, filterFreq:160, label:'reflective' },
-  weekly:        { bassFreq:50,  pulseFreq:0.06, harmonics:[1,2,3],    gainLevel:0.17, filterFreq:165, label:'strategic'  },
-  survival:      { bassFreq:35,  pulseFreq:0.18, harmonics:[1,2,4,6],  gainLevel:0.35, filterFreq:100, label:'maximum'    },
+  dashboard:     { bassFreq:110, pulseFreq:0.07, gainLevel:0.55, filterFreq:1200, tension:0.30, label:'focused'    },
+  audit:         { bassFreq:98,  pulseFreq:0.04, gainLevel:0.60, filterFreq:900,  tension:0.40, label:'ceremonial' },
+  warroom:       { bassFreq:82,  pulseFreq:0.11, gainLevel:0.70, filterFreq:800,  tension:0.65, label:'intense'    },
+  failures:      { bassFreq:90,  pulseFreq:0.03, gainLevel:0.50, filterFreq:700,  tension:0.50, label:'dark'       },
+  ideas:         { bassFreq:130, pulseFreq:0.06, gainLevel:0.45, filterFreq:1600, tension:0.20, label:'creative'   },
+  notifications: { bassFreq:110, pulseFreq:0.08, gainLevel:0.50, filterFreq:1100, tension:0.30, label:'alert'      },
+  ranks:         { bassFreq:104, pulseFreq:0.09, gainLevel:0.58, filterFreq:1000, tension:0.40, label:'imperial'   },
+  history:       { bassFreq:108, pulseFreq:0.05, gainLevel:0.48, filterFreq:950,  tension:0.30, label:'reflective' },
+  weekly:        { bassFreq:106, pulseFreq:0.06, gainLevel:0.52, filterFreq:1000, tension:0.30, label:'strategic'  },
+  survival:      { bassFreq:73,  pulseFreq:0.16, gainLevel:0.80, filterFreq:600,  tension:0.80, label:'maximum'    },
 };
 
 function initAudio(){
@@ -4244,65 +4251,56 @@ function initAudio(){
 
 function buildSoundscape(mood){
   if(!audioCtx || !masterGain) return;
-  // Stop existing nodes
   audioNodes.forEach(n=>{ try{ n.stop(); }catch(e){} });
   audioNodes = [];
 
   const now = audioCtx.currentTime;
-  const { bassFreq, pulseFreq, harmonics, filterFreq } = mood;
+  const { bassFreq, pulseFreq, filterFreq, tension } = mood;
 
-  // 1. Deep bass drone
-  harmonics.forEach((mult, i) => {
-    const osc = audioCtx.createOscillator();
-    const g   = audioCtx.createGain();
-    const filt= audioCtx.createBiquadFilter();
-
-    osc.type = i === 0 ? 'sine' : (i === 1 ? 'triangle' : 'sawtooth');
-    osc.frequency.setValueAtTime(bassFreq * mult, now);
-
-    filt.type = 'lowpass';
-    filt.frequency.setValueAtTime(filterFreq + (i * 40), now);
-    filt.Q.setValueAtTime(2, now);
-
-    const gainVal = 0.15 / (i + 1);
-    g.gain.setValueAtTime(gainVal, now);
-
-    osc.connect(filt);
-    filt.connect(g);
-    g.connect(masterGain);
-    osc.start(now);
-    audioNodes.push(osc);
+  // ── LAYER 1: Rich drone — 4 oscillators for warmth and body ──
+  const freqs = [bassFreq, bassFreq*1.5, bassFreq*2, bassFreq*3];
+  const types = ['sine','triangle','triangle','sawtooth'];
+  const gvals = [0.35, 0.20, 0.12, 0.06];
+  freqs.forEach((freq,i)=>{
+    const osc=audioCtx.createOscillator(), g=audioCtx.createGain(), filt=audioCtx.createBiquadFilter();
+    osc.type=types[i];
+    osc.frequency.setValueAtTime(freq,now);
+    osc.detune.setValueAtTime((i%2===0?1:-1)*(i*4),now); // slight detune for richness
+    filt.type='lowpass'; filt.frequency.setValueAtTime(filterFreq,now); filt.Q.setValueAtTime(1.5,now);
+    g.gain.setValueAtTime(gvals[i],now);
+    osc.connect(filt); filt.connect(g); g.connect(masterGain);
+    osc.start(now); audioNodes.push(osc);
   });
 
-  // 2. Slow tension pulse (LFO modulating gain)
-  const lfoOsc  = audioCtx.createOscillator();
-  const lfoGain = audioCtx.createGain();
-  lfoOsc.type = 'sine';
-  lfoOsc.frequency.setValueAtTime(pulseFreq, now);
-  lfoGain.gain.setValueAtTime(0.04, now);
-  lfoOsc.connect(lfoGain);
-  lfoGain.connect(masterGain.gain);
-  lfoOsc.start(now);
-  audioNodes.push(lfoOsc);
+  // ── LAYER 2: Tension heartbeat pulse ──
+  const pulseOsc=audioCtx.createOscillator(), pulseGain=audioCtx.createGain(), pulseFilt=audioCtx.createBiquadFilter();
+  pulseOsc.type='sine'; pulseOsc.frequency.setValueAtTime(bassFreq*2,now);
+  pulseFilt.type='bandpass'; pulseFilt.frequency.setValueAtTime(filterFreq*0.5,now); pulseFilt.Q.setValueAtTime(4,now);
+  pulseGain.gain.setValueAtTime(tension*0.30,now);
+  const lfo=audioCtx.createOscillator(), lfoG=audioCtx.createGain();
+  lfo.frequency.setValueAtTime(pulseFreq,now); lfoG.gain.setValueAtTime(tension*0.18,now);
+  lfo.connect(lfoG); lfoG.connect(pulseGain.gain);
+  lfo.start(now); pulseOsc.connect(pulseFilt); pulseFilt.connect(pulseGain); pulseGain.connect(masterGain);
+  pulseOsc.start(now); audioNodes.push(pulseOsc,lfo);
 
-  // 3. High frequency air texture (very quiet)
-  const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
-  const noiseData   = noiseBuffer.getChannelData(0);
-  for(let i = 0; i < noiseData.length; i++) noiseData[i] = (Math.random() * 2 - 1);
-  const noise     = audioCtx.createBufferSource();
-  const noiseGain = audioCtx.createGain();
-  const noiseFilt = audioCtx.createBiquadFilter();
-  noise.buffer = noiseBuffer;
-  noise.loop   = true;
-  noiseFilt.type = 'bandpass';
-  noiseFilt.frequency.setValueAtTime(800, now);
-  noiseFilt.Q.setValueAtTime(0.5, now);
-  noiseGain.gain.setValueAtTime(0.008, now);
-  noise.connect(noiseFilt);
-  noiseFilt.connect(noiseGain);
-  noiseGain.connect(masterGain);
-  noise.start(now);
-  audioNodes.push(noise);
+  // ── LAYER 3: High shimmer — cinematic air ──
+  const shimOsc=audioCtx.createOscillator(), shimGain=audioCtx.createGain(), shimFilt=audioCtx.createBiquadFilter();
+  shimOsc.type='sine'; shimOsc.frequency.setValueAtTime(bassFreq*5,now);
+  shimFilt.type='highpass'; shimFilt.frequency.setValueAtTime(filterFreq*1.2,now);
+  shimGain.gain.setValueAtTime(0.10,now);
+  shimOsc.connect(shimFilt); shimFilt.connect(shimGain); shimGain.connect(masterGain);
+  shimOsc.start(now); audioNodes.push(shimOsc);
+
+  // ── LAYER 4: Filtered noise — cinematic room texture ──
+  const nBuf=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate);
+  const nData=nBuf.getChannelData(0);
+  for(let i=0;i<nData.length;i++) nData[i]=(Math.random()*2-1);
+  const noise=audioCtx.createBufferSource(), nGain=audioCtx.createGain(), nFilt=audioCtx.createBiquadFilter();
+  noise.buffer=nBuf; noise.loop=true;
+  nFilt.type='bandpass'; nFilt.frequency.setValueAtTime(filterFreq*0.4,now); nFilt.Q.setValueAtTime(0.8,now);
+  nGain.gain.setValueAtTime(0.07*tension,now);
+  noise.connect(nFilt); nFilt.connect(nGain); nGain.connect(masterGain);
+  noise.start(now); audioNodes.push(noise);
 }
 
 function startMusic(){
@@ -4514,42 +4512,128 @@ async function sendTelegramNotification(type){
   const history   = S.history||[];
   const todayXP   = (S.auditXP||0)+(S.physXP||0)+(S.mentXP||0);
   const streak    = S.streak||0;
-  const hour      = new Date().getHours();
+  const totalXP   = S.xp||0;
+  const disc      = S.disc||0;
+  const ideas     = (S.ideas||[]).length;
+  const failures  = (S.failures||[]).length;
+  const avgXP     = history.length ? Math.round(history.reduce((a,e)=>a+(e.xpEarned||0),0)/history.length) : 0;
   const p         = typeof DIANA_PERSONALITY !== 'undefined' ? DIANA_PERSONALITY[rank] : null;
   const prefix    = p ? p.prefix : 'Prince —';
+  const dayNum    = history.length + 1;
 
   let msg = '';
 
   if(type === 'morning'){
-    const greetings = [
-      `☀️ *DIANA — MORNING BRIEF*\n\n${prefix} Day ${history.length + 1} begins. Streak: ${streak} days.\nXP: ${(S.xp||0).toLocaleString()} · Rank: ${rankName}\n\nThe empire does not wait. Neither should you.`,
-      `☀️ *DIANA — MORNING BRIEF*\n\n${prefix} Another day to build or waste. Your call.\nStreak: ${streak} · Total XP: ${(S.xp||0).toLocaleString()}\n\nExecute. No excuses today.`,
-      `☀️ *DIANA — MORNING BRIEF*\n\n${prefix} ${rankName} — wake up with intention.\nYou have ${streak} days of momentum. Protect it.\n\nGo earn your XP.`,
+    const pool = [
+`🌅 *DIANA — MORNING BRIEF*
+━━━━━━━━━━━━━━━━━━━━
+${prefix}
+
+Day ${dayNum}. You are a *${rankName}*.
+🔥 Streak: *${streak} days*
+⚡ Total XP: *${totalXP.toLocaleString()}*
+📊 Avg XP/Day: *${avgXP}*
+
+The men who build empires don't wait for motivation. They move first and let discipline follow.
+
+_One day at a time. Today is yours to own._`,
+
+`🌅 *DIANA — RISE & EXECUTE*
+━━━━━━━━━━━━━━━━━━━━
+${prefix}
+
+Streak on the line: *${streak} days.*
+You have logged *${history.length} total days.*
+Discipline score: *${disc}/100*
+
+Every day you execute, the gap between you and ordinary men grows wider. They are sleeping in. You are already awake.
+
+_Go earn it._`,
+
+`🌅 *DIANA — MORNING COMMAND*
+━━━━━━━━━━━━━━━━━━━━
+${prefix} Good morning, ${rankName}.
+
+📅 Day ${dayNum} of your empire.
+${streak > 0 ? `🔥 *${streak}-day streak — do not break it today.*` : `⚠️ No active streak. Today is the day you start one.`}
+💡 Ideas captured: *${ideas}*
+⚡ XP to date: *${totalXP.toLocaleString()}*
+
+The audit window opens tonight at 9PM. Make sure today's actions are worth reporting.`
     ];
-    msg = greetings[Math.floor(Math.random() * greetings.length)];
+    msg = pool[Math.floor(Math.random()*pool.length)];
+
   } else if(type === 'evening'){
-    const checks = [
-      `🌆 *DIANA — XP CHECK*\n\n${prefix} It is 6PM. Today's XP: ${todayXP}.\n${todayXP === 0 ? 'Zero logged. The audit is tonight. Do not waste it.' : todayXP < 50 ? 'Below standard. The audit window opens at 9PM. Make it count.' : 'Solid progress. Finish strong tonight.'}\n\nStreak: ${streak} days.`,
-      `🌆 *DIANA — STATUS CHECK*\n\n${prefix} Halfway through the evening. XP today: ${todayXP}.\nAudit window opens at 9PM.\n\n${streak > 0 ? `${streak} days of momentum on the line.` : 'Start your streak tonight.'}`,
+    const status = todayXP === 0
+      ? `⚠️ *Zero XP logged today.* The audit is in 3 hours. This is your warning.`
+      : todayXP < 40
+      ? `📉 *${todayXP} XP so far.* Below your average of ${avgXP}. Push harder before 9PM.`
+      : `✅ *${todayXP} XP logged today.* Above average. Finish the night strong.`;
+
+    const pool = [
+`🌆 *DIANA — 6PM CHECK-IN*
+━━━━━━━━━━━━━━━━━━━━
+${prefix}
+
+${status}
+
+🔥 Streak: *${streak} days*
+🎯 Discipline: *${disc}/100*
+⏰ Audit window opens: *9:00 PM*
+
+You have 3 hours before the reckoning. Use them.`,
+
+`🌆 *DIANA — EVENING STATUS*
+━━━━━━━━━━━━━━━━━━━━
+${prefix} Rank: *${rankName}*
+
+Today's XP: *${todayXP}*
+Your daily average: *${avgXP}*
+
+${todayXP >= avgXP ? `You are ahead of pace. The audit is tonight — close it strong.` : `You are behind pace. The audit opens at 9PM. Do not close the day with regret.`}
+
+_The empire demands consistency, not perfection._`
     ];
-    msg = checks[Math.floor(Math.random() * checks.length)];
+    msg = pool[Math.floor(Math.random()*pool.length)];
+
   } else if(type === 'audit_warning'){
-    msg = `⚠️ *DIANA — AUDIT WARNING*\n\n${prefix} 15 minutes until the audit window opens.\n\nThe CEO Audit opens at 9:00 PM.\nStreak: ${streak} days. XP today: ${todayXP}.\n\nPrepare yourself. This is your daily reckoning.`;
+    msg =
+`⚠️ *DIANA — AUDIT IN 15 MINUTES*
+━━━━━━━━━━━━━━━━━━━━
+${prefix}
+
+The *CEO Audit* opens at 9:00 PM sharp.
+
+Today's XP: *${todayXP}*
+Streak: *${streak} days*
+Rank: *${rankName}*
+
+This is your daily reckoning. No CEO skips it.
+Open the app. Log your day. Face yourself.
+
+_The men who build empires account for every day._`;
+
   } else if(type === 'test'){
-    msg = `✅ *DIANA — TEST NOTIFICATION*\n\nTelegram notifications are working.\nRank: ${rankName} · XP: ${(S.xp||0).toLocaleString()}\n\nThe empire is connected.`;
+    msg =
+`✅ *DIANA — SYSTEM CHECK*
+━━━━━━━━━━━━━━━━━━━━
+Telegram notifications: *ONLINE*
+
+Rank: *${rankName}*
+XP: *${totalXP.toLocaleString()}*
+Streak: *${streak} days*
+Ideas: *${ideas}* · Failures archived: *${failures}*
+
+The empire is connected. Diana is watching.`;
   }
 
   if(!msg) return false;
 
   try{
-    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: msg,
-        parse_mode: 'Markdown'
-      })
+      body: JSON.stringify({ chat_id:TELEGRAM_CHAT_ID, text:msg, parse_mode:'Markdown' })
     });
     const data = await res.json();
     return data.ok;
