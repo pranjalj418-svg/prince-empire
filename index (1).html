@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>Prince Empire</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --crimson: #8B0000;
+    --crimson-bright: #C0392B;
+    --crimson-glow: #FF2D2D;
+    --gold: #D4AF37;
+    --gold-light: #F5D76E;
+    --gold-dim: #8B7335;
+    --black: #000000;
+    --dark: #0a0a0a;
+    --dark2: #111111;
+    --dark3: #1a1a1a;
+    --dark4: #222222;
+    --dark5: #2a2a2a;
+    --text: #E8E0D0;
+    --text-dim: #8a8070;
+    --text-muted: #4a4540;
+    --border: #2a2a2a;
+    --border-gold: rgba(212,175,55,0.3);
+    --sidebar-w: 260px;
+    --nav-h: 64px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  html, body {
+    height: 100%;
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'Oswald', sans-serif;
+    overflow: hidden;
+  }
+
+  /* ===================== LOCK SCREEN ===================== */
+  #lockScreen {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--black);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+    background-image: radial-gradient(ellipse at 50% 0%, rgba(139,0,0,0.25) 0%, transparent 60%);
+  }
+
+  .lock-crest {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(48px, 10vw, 80px);
+    color: var(--gold);
+    letter-spacing: 8px;
+    text-shadow: 0 0 40px rgba(212,175,55,0.4);
+    animation: crестPulse 3s ease-in-out infinite;
+  }
+  @keyframes crестPulse {
+    0%,100% { text-shadow: 0 0 40px rgba(212,175,55,0.4); }
+    50% { text-shadow: 0 0 80px rgba(212,175,55,0.7), 0 0 120px rgba(212,175,55,0.3); }
+  }
+
+  .lock-subtitle {
+    font-family: 'Crimson Pro', serif;
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .pin-display {
+    display: flex; gap: 16px;
+  }
+  .pin-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--gold-dim);
+    background: transparent;
+    transition: all 0.2s;
+  }
+  .pin-dot.filled {
+    background: var(--gold);
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(212,175,55,0.6);
+  }
+
+  .pin-pad {
+    display: grid; grid-template-columns: repeat(3, 72px);
+    gap: 12px;
+  }
+  .pin-btn {
+    height: 72px; border-radius: 12px;
+    background: var(--dark3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Oswald', sans-serif;
+    font-size: 22px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pin-btn:active { background: var(--dark5); border-color: var(--gold-dim); transform: scale(0.95); }
+  .pin-btn.del { font-size: 16px; color: var(--text-dim); }
+  .pin-btn.empty { visibility: hidden; }
+
+  .lock-error {
+    color: var(--crimson-glow); font-size: 13px;
+    letter-spacing: 2px; font-family: 'DM Mono', monospace;
+    height: 20px; text-align: center;
+  }
+
+  /* ===================== APP SHELL ===================== */
+  #app {
+    display: none; height: 100%; position: relative;
+  }
+  #app.unlocked { display: flex; }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--dark2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+    position: relative;
+    z-index: 10;
+  }
+
+  .sidebar-header {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(139,0,0,0.15) 0%, transparent 100%);
+  }
+  .empire-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 26px; letter-spacing: 3px;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(212,175,55,0.3);
+  }
+  .empire-rank {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--crimson-bright);
+    letter-spacing: 2px; margin-top: 4px;
+  }
+
+  .xp-bar-wrap {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .xp-label {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 6px;
+  }
+  .xp-bar {
+    height: 4px; background: var(--dark4);
+    border-radius: 2px; overflow: hidden;
+  }
+  .xp-fill {
+    height: 100%; background: linear-gradient(90deg, var(--crimson), var(--gold));
+    border-radius: 2px; transition: width 0.5s ease;
+    box-shadow: 0 0 8px rgba(212,175,55,0.4);
+  }
+
+  .nav-section {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-label {
+    font-size: 10px; letter-spacing: 3px;
+    color: var(--text-muted); padding: 8px 20px 4px;
+    font-family: 'DM Mono', monospace;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 20px; cursor: pointer;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+    font-size: 14px; letter-spacing: 1px;
+    color: var(--text-dim);
+  }
+  .nav-item:hover { background: var(--dark3); color: var(--text); }
+  .nav-item.active {
+    background: rgba(139,0,0,0.2);
+    border-left-color: var(--crimson-bright);
+    color: var(--gold);
+  }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-footer {
+    margin-top: auto; padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .streak-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--dark3); border-radius: 10px;
+    padding: 10px 14px; border: 1px solid var(--border-gold);
+  }
+  .streak-fire { font-size: 20px; }
+  .streak-info { font-family: 'DM Mono', monospace; }
+  .streak-num { font-size: 18px; color: var(--gold); font-weight: 500; }
+  .streak-lbl { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; }
+
+  /* MAIN CONTENT */
+  #main {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+  }
+
+  /* TOP BAR */
+  #topbar {
+    height: 56px; padding: 0 20px;
+    background: var(--dark2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; z-index: 5;
+  }
+  .topbar-left {
+    display: flex; align-items: center; gap: 12px;
+  }
+  #menuBtn {
+    display: none;
+    background: none; border: none;
+    color: var(--text); font-size: 20px;
+    cursor: pointer; padding: 8px;
+    border-radius: 8px;
+  }
+  .page-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 22px; letter-spacing: 3px;
+    color: var(--gold);
+  }
+  .topbar-right {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topbar-btn {
+    background: var(--dark3); border: 1px solid var(--border);
+    color: var(--text-dim); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .topbar-btn:hover { color: var(--text); border-color: var(--gold-dim); }
+  .topbar-btn.active { color: var(--gold); border-color: var(--gold-dim); background: rgba(212,175,55,0.1); }
+
+  /* CONTENT AREA */
+  #content {
+    flex: 1; overflow-y: auto; padding: 20px;
+    scroll-behavior: smooth;
+  }
+  #content::-webkit-scrollbar { width: 4px; }
+  #content::-webkit-scrollbar-track { background: transparent; }
+  #content::-webkit-scrollbar-thumb { background: var(--dark5); border-radius: 2px; }
+
+  /* BOTTOM NAV (mobile) */
+  #bottomNav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    background: var(--dark2);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+  }
+  .bnav-inner {
+    display: flex; height: 100%;
+  }
+  .bnav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer;
+    color: var(--text-muted); font-size: 10px;
+    letter-spacing: 0.5px; font-family: 'DM Mono', monospace;
+    border-top: 2px solid transparent;
+    transition: all 0.15s;
+    padding-bottom: 4px;
+  }
+  .bnav-item .bicon { font-size: 18px; }
+  .bnav-item.active {
+    color: var(--gold);
+    border-top-color: var(--crimson-bright);
+  }
+
+  /* MOBILE DRAWER OVERLAY */
+  #drawerOverlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,0.7);
+  }
+  #drawerOverlay.open { display: block; }
+  #sidebar.drawer-open {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    z-index: 60;
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.8);
+  }
+
+  /* ===================== DIANA PANEL ===================== */
+  #dianaPanel {
+    position: fixed;
+    bottom: 0; right: 0;
+    width: min(420px, 100vw);
+    height: 60vh;
+    background: var(--dark2);
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-radius: 16px 0 0 0;
+    z-index: 200;
+    display: flex; flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+    box-shadow: -4px -4px 40px rgba(0,0,0,0.6);
+  }
+  #dianaPanel.open { transform: translateY(0); }
+
+  /* On mobile, panel goes full width */
+  @media (max-width: 480px) {
+    #dianaPanel {
+      width: 100vw;
+      height: 70vh;
+      border-radius: 16px 16px 0 0;
+      border-left: none;
+    }
+  }
+
+  .diana-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, rgba(139,0,0,0.2) 0%, transparent 100%);
+  }
+  .diana-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: radial-gradient(circle, var(--crimson-bright), var(--crimson));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; border: 2px solid var(--gold-dim);
+    position: relative; flex-shrink: 0;
+  }
+  .diana-avatar::after {
+    content: ''; position: absolute; inset: -4px;
+    border-radius: 50%;
+    border: 1px solid rgba(212,175,55,0.3);
+    animation: avatarPulse 2s ease-in-out infinite;
+  }
+  .diana-avatar.speaking::after {
+    border-color: rgba(212,175,55,0.8);
+    animation: avatarPulse 0.5s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(212,175,55,0.3);
+  }
+  @keyframes avatarPulse {
+    0%,100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+  .diana-title-wrap { flex: 1; }
+  .diana-name {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 18px; letter-spacing: 3px;
+    color: var(--gold);
+  }
+  .diana-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .diana-close {
+    background: none; border: none;
+    color: var(--text-dim); font-size: 20px;
+    cursor: pointer; padding: 6px;
+    border-radius: 6px; transition: color 0.15s;
+  }
+  .diana-close:hover { color: var(--text); }
+
+  .diana-messages {
+    flex: 1; overflow-y: auto; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .diana-messages::-webkit-scrollbar { width: 3px; }
+  .diana-messages::-webkit-scrollbar-thumb { background: var(--dark5); }
+
+  .msg {
+    max-width: 85%; padding: 10px 14px;
+    border-radius: 12px; font-size: 14px;
+    line-height: 1.5; font-family: 'Crimson Pro', serif;
+  }
+  .msg.diana {
+    background: linear-gradient(135deg, rgba(139,0,0,0.3), rgba(139,0,0,0.15));
+    border: 1px solid rgba(139,0,0,0.4);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+  }
+  .msg.user {
+    background: var(--dark4);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-bottom-right-radius: 4px;
+    align-self: flex-end;
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+  }
+  .msg.thinking {
+    background: rgba(139,0,0,0.1);
+    border: 1px solid rgba(139,0,0,0.2);
+    align-self: flex-start;
+    display: flex; gap: 6px; align-items: center;
+    padding: 12px 16px;
+  }
+  .think-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--crimson-bright);
+    animation: thinkBounce 1s ease-in-out infinite;
+  }
+  .think-dot:nth-child(2) { animation-delay: 0.2s; }
+  .think-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes thinkBounce {
+    0%,100% { transform: translateY(0); opacity: 0.4; }
+    50% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  .diana-input-wrap {
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 8px;
+    background: var(--dark3);
+  }
+  #dianaInput {
+    flex: 1; background: var(--dark4);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px;
+    color: var(--text); font-family: 'Oswald', sans-serif;
+    font-size: 14px; outline: none;
+    transition: border-color 0.15s;
+    resize: none; max-height: 80px;
+  }
+  #dianaInput:focus { border-color: var(--crimson-bright); }
+  #dianaInput::placeholder { color: var(--text-muted); }
+  #dianaSend {
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-bright));
+    border: none; border-radius: 10px;
+    width: 44px; color: white; font-size: 18px;
+    cursor: pointer; transition: all 0.15s;
+    flex-shrink: 0; display: flex;
+    align-items: center; justify-content: center;
+  }
+  #dianaSend:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(139,0,0,0.4); }
+  #dianaSend:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* DIANA FAB */
+  #dianaFab {
+    position: fixed; bottom: 20px; right: 20px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-bright));
+    border: 2px solid var(--gold-dim);
+    color: white; font-size: 22px;
+    cursor: pointer; z-index: 150;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(139,0,0,0.5);
+    transition: all 0.2s;
+  }
+  #dianaFab:hover { transform: scale(1.1); box-shadow: 0 6px 30px rgba(139,0,0,0.7); }
+  #dianaFab.hidden { display: none; }
+
+  /* ===================== PAGES ===================== */
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* CARDS */
+  .card {
+    background: var(--dark2);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 16px; letter-spacing: 2px;
+    color: var(--gold); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .ct-icon { font-size: 14px; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 600px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+
+  .stat-box {
+    background: var(--dark3); border-radius: 10px;
+    padding: 14px 12px; text-align: center;
+    border: 1px solid var(--border);
+  }
+  .stat-val {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 28px; color: var(--gold);
+    line-height: 1;
+  }
+  .stat-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--text-dim);
+    letter-spacing: 1px; margin-top: 4px;
+  }
+
+  /* ACTIVITY LOG */
+  .log-item {
+    display: flex; justify-content: space-between;
+    align-items: center; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .log-item:last-child { border-bottom: none; }
+  .log-name { color: var(--text); }
+  .log-xp {
+    font-family: 'DM Mono', monospace;
+    color: var(--gold); font-size: 12px;
+  }
+  .log-btn {
+    background: rgba(139,0,0,0.3); border: 1px solid rgba(139,0,0,0.5);
+    color: var(--text); border-radius: 8px;
+    padding: 6px 14px; cursor: pointer; font-size: 12px;
+    font-family: 'Oswald', sans-serif; letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .log-btn:hover { background: rgba(139,0,0,0.5); }
+  .log-btn:active { transform: scale(0.95); }
+
+  /* FORM ELEMENTS */
+  .form-group { margin-bottom: 14px; }
+  .form-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    color: var(--text-dim); margin-bottom: 6px; display: block;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; background: var(--dark3);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+    color: var(--text); font-family: 'Oswald', sans-serif;
+    font-size: 14px; outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--crimson-bright);
+  }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-select option { background: var(--dark3); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--crimson), var(--crimson-bright));
+    border: none; border-radius: 8px;
+    color: white; padding: 12px 24px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px; letter-spacing: 2px;
+    cursor: pointer; width: 100%;
+    transition: all 0.15s;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(139,0,0,0.4); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    border: none; border-radius: 8px;
+    color: var(--black); padding: 12px 24px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 15px; letter-spacing: 2px;
+    cursor: pointer; width: 100%;
+    transition: all 0.15s; font-weight: 600;
+  }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(212,175,55,0.4); }
+
+  /* SUCCESS TOAST */
+  #toast {
+    position: fixed; top: 70px; right: 16px;
+    background: var(--dark3); border: 1px solid var(--gold-dim);
+    border-radius: 10px; padding: 12px 18px;
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    color: var(--gold); z-index: 500;
+    transform: translateX(120%);
+    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+    max-width: 280px;
+  }
+  #toast.show { transform: translateX(0); }
+
+  /* DIANA ALERT BANNER */
+  #dianaBanner {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: linear-gradient(90deg, var(--crimson), rgba(139,0,0,0.8));
+    padding: 12px 16px; z-index: 400;
+    display: none; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--gold-dim);
+  }
+  #dianaBanner.show { display: flex; }
+  #dianaBanner .banner-text {
+    flex: 1; font-family: 'Crimson Pro', serif;
+    font-size: 14px; color: white;
+  }
+  #dianaBanner .banner-close {
+    background: none; border: none; color: white;
+    font-size: 18px; cursor: pointer; opacity: 0.7;
+  }
+
+  /* AUDIT LOCK */
+  .audit-locked {
+    text-align: center; padding: 40px 20px;
+    color: var(--text-dim);
+  }
+  .audit-locked .lock-icon { font-size: 40px; margin-bottom: 12px; }
+  .audit-locked h3 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 22px; color: var(--text-dim);
+    letter-spacing: 3px; margin-bottom: 8px;
+  }
+
+  /* IDEA / FAILURE CARDS */
+  .item-card {
+    background: var(--dark3); border-radius: 10px;
+    padding: 14px; margin-bottom: 10px;
+    border-left: 3px solid var(--crimson);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--crimson);
+  }
+  .item-card .ic-title {
+    font-size: 15px; color: var(--text);
+    margin-bottom: 4px;
+  }
+  .item-card .ic-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+  .item-card.gold-border { border-left-color: var(--gold); }
+
+  /* WAR ROOM */
+  .war-stat {
+    display: flex; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .war-stat:last-child { border-bottom: none; }
+  .war-key { color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 12px; }
+  .war-val { color: var(--text); font-weight: 500; }
+
+  /* WEEKLY BOARD */
+  .day-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .day-row:last-child { border-bottom: none; }
+  .day-name { width: 80px; color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 11px; }
+  .day-xp { color: var(--gold); font-family: 'Bebas Neue', cursive; font-size: 16px; min-width: 60px; }
+  .day-bar-wrap { flex: 1; height: 6px; background: var(--dark4); border-radius: 3px; overflow: hidden; }
+  .day-bar { height: 100%; background: linear-gradient(90deg, var(--crimson), var(--gold)); border-radius: 3px; transition: width 0.5s; }
+
+  /* SURVIVAL MODE */
+  .survival-active {
+    text-align: center; padding: 30px 20px;
+  }
+  .survival-badge {
+    display: inline-block;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 14px; letter-spacing: 4px;
+    color: var(--crimson-glow);
+    background: rgba(255,45,45,0.1);
+    border: 1px solid rgba(255,45,45,0.3);
+    padding: 6px 18px; border-radius: 20px;
+    margin-bottom: 16px;
+    animation: survivalPulse 2s ease-in-out infinite;
+  }
+  @keyframes survivalPulse {
+    0%,100% { box-shadow: 0 0 0 rgba(255,45,45,0); }
+    50% { box-shadow: 0 0 20px rgba(255,45,45,0.3); }
+  }
+
+  /* RESPONSIVE BREAKPOINTS */
+  @media (max-width: 1024px) {
+    #sidebar { display: none; }
+    #menuBtn { display: flex; }
+    #app.unlocked { flex-direction: column; }
+  }
+
+  @media (max-width: 767px) {
+    #bottomNav { display: block; }
+    #topbar { display: none; }
+    #content { padding: 14px 14px calc(var(--nav-h) + 14px); }
+    #dianaFab { bottom: calc(var(--nav-h) + 12px); right: 14px; }
+    #dianaPanel { bottom: var(--nav-h); }
+  }
+
+  @media (min-width: 768px) and (max-width: 1024px) {
+    #content { padding: 20px; }
+    #topbar { display: flex; }
+    #main { width: 100%; }
+  }
+
+  /* SCROLLABLE sections on mobile */
+  @media (max-width: 767px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .card { padding: 14px; }
+    .stat-val { font-size: 24px; }
+  }
+
+  /* Page header */
+  .page-hdr {
+    margin-bottom: 20px;
+  }
+  .page-hdr h2 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(24px, 5vw, 32px);
+    letter-spacing: 3px; color: var(--gold);
+    line-height: 1;
+  }
+  .page-hdr p {
+    font-family: 'Crimson Pro', serif;
+    font-size: 14px; color: var(--text-dim);
+    margin-top: 4px; font-style: italic;
+  }
+
+  /* AUDIO TOGGLE */
+  #audioToggle {
+    background: var(--dark3); border: 1px solid var(--border);
+    color: var(--text-dim); border-radius: 8px;
+    padding: 6px 10px; cursor: pointer;
+    font-size: 16px; transition: all 0.15s;
+  }
+  #audioToggle.on { color: var(--gold); border-color: var(--gold-dim); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .es-icon { font-size: 36px; margin-bottom: 10px; opacity: 0.5; }
+  .empty-state p { font-family: 'Crimson Pro', serif; font-style: italic; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- DIANA ALERT BANNER -->
+<div id="dianaBanner">
+  <span>⚔️</span>
+  <span class="banner-text" id="bannerText"></span>
+  <button class="banner-close" onclick="closeBanner()">✕</button>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ============ LOCK SCREEN ============ -->
+<div id="lockScreen">
+  <div class="lock-crest">PRINCE EMPIRE</div>
+  <div class="lock-subtitle">Enter Your Command Code</div>
+  <div class="pin-display">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="lock-error" id="lockError"></div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <div class="empire-title">⚔ PRINCE EMPIRE</div>
+      <div class="empire-rank" id="sideRank">RANK I — INITIATE</div>
+    </div>
+    <div class="xp-bar-wrap">
+      <div class="xp-label">
+        <span id="xpCurrent">0 XP</span>
+        <span id="xpNext">1,000 XP</span>
+      </div>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">COMMAND</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)" data-page="dashboard">
+        <span class="icon">🏛</span> DASHBOARD
+      </div>
+      <div class="nav-item" onclick="showPage('diana',this)" data-page="diana">
+        <span class="icon">🤖</span> DIANA AI
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">TRACKING</div>
+      <div class="nav-item" onclick="showPage('exercise',this)" data-page="exercise">
+        <span class="icon">💪</span> EXERCISE
+      </div>
+      <div class="nav-item" onclick="showPage('ideas',this)" data-page="ideas">
+        <span class="icon">💡</span> IDEA VAULT
+      </div>
+      <div class="nav-item" onclick="showPage('failures',this)" data-page="failures">
+        <span class="icon">📉</span> FAILURE ARCHIVE
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">REVIEW</div>
+      <div class="nav-item" onclick="showPage('warroom',this)" data-page="warroom">
+        <span class="icon">🗡</span> WAR ROOM
+      </div>
+      <div class="nav-item" onclick="showPage('weekly',this)" data-page="weekly">
+        <span class="icon">📊</span> WEEKLY BOARD
+      </div>
+      <div class="nav-item" onclick="showPage('audit',this)" data-page="audit">
+        <span class="icon">📋</span> CEO AUDIT
+      </div>
+      <div class="nav-item" onclick="showPage('survival',this)" data-page="survival">
+        <span class="icon">🔥</span> SURVIVAL MODE
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="streak-badge">
+        <div class="streak-fire">🔥</div>
+        <div class="streak-info">
+          <div class="streak-num" id="streakNum">0</div>
+          <div class="streak-lbl">DAY STREAK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAWER OVERLAY -->
+  <div id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- TOPBAR -->
+    <div id="topbar">
+      <div class="topbar-left">
+        <button id="menuBtn" onclick="openDrawer()">☰</button>
+        <div class="page-title" id="topTitle">DASHBOARD</div>
+      </div>
+      <div class="topbar-right">
+        <button id="audioToggle" onclick="toggleAudio()" title="Toggle Audio">🔊</button>
+        <button class="topbar-btn" onclick="sendTelegram()">📡 SYNC</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div id="content">
+
+      <!-- DASHBOARD PAGE -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-hdr">
+          <h2>COMMAND CENTER</h2>
+          <p id="dashGreeting">Loading your briefing...</p>
+        </div>
+
+        <div class="stat-grid" style="margin-bottom:14px">
+          <div class="stat-box">
+            <div class="stat-val" id="statXP">0</div>
+            <div class="stat-lbl">TOTAL XP</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="statStreak">0</div>
+            <div class="stat-lbl">STREAK</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="statRank">I</div>
+            <div class="stat-lbl">RANK</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="statToday">0</div>
+            <div class="stat-lbl">TODAY XP</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">⚡</span> DAILY ACTIONS</div>
+          <div id="activityList">
+            <div class="log-item">
+              <span class="log-name">🌅 Wake Up Early</span>
+              <span class="log-xp">+10 XP</span>
+              <button class="log-btn" onclick="logXP('Wake Up',10)">LOG</button>
+            </div>
+            <div class="log-item">
+              <span class="log-name">📚 Study Session</span>
+              <span class="log-xp">+20 XP</span>
+              <button class="log-btn" onclick="logXP('Study',20)">LOG</button>
+            </div>
+            <div class="log-item">
+              <span class="log-name">💪 Exercise</span>
+              <span class="log-xp">+15 XP</span>
+              <button class="log-btn" onclick="logXP('Exercise',15)">LOG</button>
+            </div>
+            <div class="log-item">
+              <span class="log-name">🧠 Deep Retention</span>
+              <span class="log-xp">+20 XP</span>
+              <button class="log-btn" onclick="logXP('Retention',20)">LOG</button>
+            </div>
+            <div class="log-item">
+              <span class="log-name">📵 Phone Discipline</span>
+              <span class="log-xp">+10 XP</span>
+              <button class="log-btn" onclick="logXP('Phone',10)">LOG</button>
+            </div>
+            <div class="log-item">
+              <span class="log-name">🧘 Mental Training</span>
+              <span class="log-xp">+15 XP</span>
+              <button class="log-btn" onclick="logXP('Mental',15)">LOG</button>
+            </div>
+            <div class="log-item">
+              <span class="log-name">📋 CEO Audit</span>
+              <span class="log-xp">+10 XP</span>
+              <button class="log-btn" onclick="logXP('Audit',10)">LOG</button>
+            </div>
+            <div class="log-item">
+              <span class="log-name">💡 New Idea</span>
+              <span class="log-xp">+5 XP</span>
+              <button class="log-btn" onclick="logXP('Idea',5)">LOG</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📜</span> TODAY'S LOG</div>
+          <div id="todayLog">
+            <div class="empty-state">
+              <div class="es-icon">⚔️</div>
+              <p>No actions logged today. Begin your conquest.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIANA PAGE -->
+      <div class="page" id="page-diana">
+        <div class="page-hdr">
+          <h2>DIANA AI</h2>
+          <p>Your personal AI commander — powered by Claude</p>
+        </div>
+        <div class="card" style="min-height:300px; display:flex; flex-direction:column;">
+          <div class="card-title"><span class="ct-icon">🤖</span> COMMAND INTERFACE</div>
+          <div id="dianaPageMsgs" style="flex:1; min-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px;">
+            <div class="msg diana">Greetings, Commander. I am Diana — your AI intelligence, now powered by Claude. Ask me anything about your Empire, your progress, or seek my strategic counsel. I am at your command.</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="dianaPageInput" class="form-input" placeholder="Ask Diana anything..." onkeydown="if(event.key==='Enter')sendDianaPage()">
+            <button class="log-btn" onclick="sendDianaPage()" style="white-space:nowrap">SEND</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXERCISE PAGE -->
+      <div class="page" id="page-exercise">
+        <div class="page-hdr"><h2>EXERCISE TRACKER</h2><p>Build your warrior physique</p></div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">💪</span> LOG WORKOUT</div>
+          <div class="form-group">
+            <label class="form-label">EXERCISE TYPE</label>
+            <select class="form-select" id="exType">
+              <option>Push-ups</option><option>Pull-ups</option><option>Squats</option>
+              <option>Running</option><option>Cycling</option><option>Swimming</option>
+              <option>Weight Training</option><option>HIIT</option><option>Yoga</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SETS / REPS / DURATION</label>
+            <input type="text" class="form-input" id="exDetails" placeholder="e.g. 3 sets × 20 reps">
+          </div>
+          <div class="form-group">
+            <label class="form-label">NOTES</label>
+            <textarea class="form-textarea" id="exNotes" placeholder="How did it feel?"></textarea>
+          </div>
+          <button class="btn-primary" onclick="logExercise()">LOG WORKOUT +15 XP</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📊</span> RECENT WORKOUTS</div>
+          <div id="exerciseLog">
+            <div class="empty-state"><div class="es-icon">💪</div><p>No workouts logged yet.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IDEAS PAGE -->
+      <div class="page" id="page-ideas">
+        <div class="page-hdr"><h2>IDEA VAULT</h2><p>Capture every spark before it fades</p></div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">💡</span> NEW IDEA</div>
+          <div class="form-group">
+            <label class="form-label">IDEA TITLE</label>
+            <input type="text" class="form-input" id="ideaTitle" placeholder="Name your idea">
+          </div>
+          <div class="form-group">
+            <label class="form-label">DETAILS</label>
+            <textarea class="form-textarea" id="ideaDetails" placeholder="Expand on it..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CATEGORY</label>
+            <select class="form-select" id="ideaCat">
+              <option>Business</option><option>Tech</option><option>Personal</option><option>Creative</option><option>Other</option>
+            </select>
+          </div>
+          <button class="btn-primary" onclick="saveIdea()">VAULT THIS IDEA +5 XP</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📂</span> VAULTED IDEAS</div>
+          <div id="ideasList">
+            <div class="empty-state"><div class="es-icon">💡</div><p>Your vault is empty. Fill it with brilliance.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAILURES PAGE -->
+      <div class="page" id="page-failures">
+        <div class="page-hdr"><h2>FAILURE ARCHIVE</h2><p>Every failure is data. Collect it all.</p></div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📉</span> LOG FAILURE</div>
+          <div class="form-group">
+            <label class="form-label">WHAT HAPPENED</label>
+            <input type="text" class="form-input" id="failTitle" placeholder="Be brutally honest">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ROOT CAUSE</label>
+            <textarea class="form-textarea" id="failCause" placeholder="Why did this happen?"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">LESSON</label>
+            <textarea class="form-textarea" id="failLesson" placeholder="What will you do differently?"></textarea>
+          </div>
+          <button class="btn-primary" onclick="saveFailure()">ARCHIVE FAILURE</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📚</span> ARCHIVED FAILURES</div>
+          <div id="failuresList">
+            <div class="empty-state"><div class="es-icon">📉</div><p>No failures archived. You're either perfect or not tracking.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WAR ROOM -->
+      <div class="page" id="page-warroom">
+        <div class="page-hdr"><h2>WAR ROOM</h2><p>Intelligence briefing on your Empire</p></div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📊</span> EMPIRE STATS</div>
+          <div id="warStats"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🗡</span> ACTIVE CHALLENGES</div>
+          <div class="form-group">
+            <input type="text" class="form-input" id="challengeInput" placeholder="Add a challenge or goal...">
+          </div>
+          <button class="btn-primary" onclick="addChallenge()" style="margin-bottom:12px">ADD CHALLENGE</button>
+          <div id="challengeList">
+            <div class="empty-state"><div class="es-icon">🗡</div><p>No active challenges. Set your targets.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WEEKLY BOARD -->
+      <div class="page" id="page-weekly">
+        <div class="page-hdr"><h2>WEEKLY BOARD</h2><p>7-day performance review</p></div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">📊</span> XP THIS WEEK</div>
+          <div id="weeklyChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">🏆</span> WEEK SUMMARY</div>
+          <div id="weeklySummary"></div>
+        </div>
+      </div>
+
+      <!-- CEO AUDIT -->
+      <div class="page" id="page-audit">
+        <div class="page-hdr"><h2>CEO AUDIT</h2><p>9PM — Midnight. Commander's review.</p></div>
+        <div id="auditContent"></div>
+      </div>
+
+      <!-- SURVIVAL MODE -->
+      <div class="page" id="page-survival">
+        <div class="page-hdr"><h2>SURVIVAL MODE</h2><p>For when everything is on the line</p></div>
+        <div class="card">
+          <div class="survival-active">
+            <div class="survival-badge">⚠ SURVIVAL PROTOCOL</div>
+            <p style="font-family:'Crimson Pro',serif; color:var(--text-dim); font-size:15px; max-width:300px; margin:0 auto 20px; line-height:1.6; font-style:italic;">
+              When resources are scarce and pressure is high — this mode strips everything to essentials. Only what matters. Only what moves you forward.
+            </p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">CURRENT CRISIS</label>
+            <textarea class="form-textarea" id="survivalNote" placeholder="Describe your current situation..."></textarea>
+          </div>
+          <button class="btn-gold" onclick="activateSurvival()">ACTIVATE SURVIVAL MODE</button>
+          <div id="survivalPlan" style="margin-top:14px;"></div>
+        </div>
+      </div>
+
+    </div><!-- end #content -->
+
+    <!-- BOTTOM NAV -->
+    <nav id="bottomNav">
+      <div class="bnav-inner">
+        <div class="bnav-item active" onclick="showPage('dashboard',this)" data-page="dashboard">
+          <span class="bicon">🏛</span><span>HOME</span>
+        </div>
+        <div class="bnav-item" onclick="showPage('exercise',this)" data-page="exercise">
+          <span class="bicon">💪</span><span>TRAIN</span>
+        </div>
+        <div class="bnav-item" onclick="showPage('warroom',this)" data-page="warroom">
+          <span class="bicon">🗡</span><span>WAR</span>
+        </div>
+        <div class="bnav-item" onclick="showPage('weekly',this)" data-page="weekly">
+          <span class="bicon">📊</span><span>REVIEW</span>
+        </div>
+        <div class="bnav-item" onclick="showPage('diana',this)" data-page="diana">
+          <span class="bicon">🤖</span><span>DIANA</span>
+        </div>
+      </div>
+    </nav>
+
+  </div><!-- end #main -->
+
+  <!-- DIANA FLOATING PANEL (non-diana pages) -->
+  <div id="dianaPanel">
+    <div class="diana-header">
+      <div class="diana-avatar" id="dianaAvatarFloat">⚔</div>
+      <div class="diana-title-wrap">
+        <div class="diana-name">DIANA</div>
+        <div class="diana-status" id="dianaStatusFloat">AI COMMANDER — ONLINE</div>
+      </div>
+      <button class="diana-close" onclick="toggleDianaPanel()">✕</button>
+    </div>
+    <div class="diana-messages" id="dianaFloatMsgs">
+      <div class="msg diana">Commander. I'm here. What do you need?</div>
+    </div>
+    <div class="diana-input-wrap">
+      <textarea id="dianaInput" rows="1" placeholder="Speak to Diana..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendDiana();}"></textarea>
+      <button id="dianaSend" onclick="sendDiana()">➤</button>
+    </div>
+  </div>
+
+  <!-- DIANA FAB -->
+  <button id="dianaFab" onclick="toggleDianaPanel()" title="Talk to Diana">⚔</button>
+
+</div><!-- end #app -->
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const ANTHROPIC_KEY = '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';
+const TG_TOKEN = '8747819871:AAETc2WTtD1HYOhAzMFOMsBkqOCkeTmdjnc';
+const TG_CHAT = '5225000217';
+const PIN_HASH_TARGET = 'fd6d9e39c1c0ef7c77ab8c09498929e8b9b9a2e89a4c7d7e2e4b9f8c1d0e2f3a'; // sha256 of 1602 — we use JS hash
+
+let state = loadState();
+let audioOn = false;
+let audioCtx = null;
+let currentSoundscape = null;
+let dianaFloatHistory = [];
+let dianaPageHistory = [];
+let currentPage = 'dashboard';
+
+function loadState() {
+  const def = {
+    xp: 0, streak: 0, lastLogin: null,
+    todayXP: 0, todayDate: today(),
+    history: [], exercises: [], ideas: [], failures: [],
+    challenges: [], weeklyXP: {},
+    auditHistory: [], survivalNotes: []
+  };
+  try {
+    const saved = localStorage.getItem('pe_v2');
+    return saved ? { ...def, ...JSON.parse(saved) } : def;
+  } catch { return def; }
+}
+
+function saveState() {
+  localStorage.setItem('pe_v2', JSON.stringify(state));
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// Reset daily XP if new day
+function checkDayReset() {
+  if (state.todayDate !== today()) {
+    // Update weekly XP
+    state.weeklyXP[state.todayDate] = state.todayXP;
+    state.todayDate = today();
+    state.todayXP = 0;
+    // Streak logic
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yd = yesterday.toISOString().split('T')[0];
+    if (state.lastLogin === yd) { state.streak++; }
+    else if (state.lastLogin !== today()) { state.streak = 1; }
+    state.lastLogin = today();
+    saveState();
+  } else if (!state.lastLogin) {
+    state.lastLogin = today();
+    state.streak = 1;
+    saveState();
+  }
+}
+
+// ============================================================
+// PIN LOCK
+// ============================================================
+let pinEntry = '';
+let lockAttempts = 0;
+let lockUntil = 0;
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function pinPress(d) {
+  if (Date.now() < lockUntil) {
+    const mins = Math.ceil((lockUntil - Date.now()) / 60000);
+    document.getElementById('lockError').textContent = `LOCKED — ${mins} MIN REMAINING`;
+    return;
+  }
+  if (pinEntry.length >= 4) return;
+  pinEntry += d;
+  updateDots();
+  if (pinEntry.length === 4) setTimeout(checkPin, 200);
+}
+
+function pinDel() {
+  pinEntry = pinEntry.slice(0,-1);
+  updateDots();
+}
+
+function updateDots() {
+  for (let i=0; i<4; i++) {
+    document.getElementById('d'+i).classList.toggle('filled', i < pinEntry.length);
+  }
+}
+
+async function checkPin() {
+  const hash = await sha256(pinEntry);
+  const correctHash = await sha256('1602');
+  if (hash === correctHash) {
+    unlockApp();
+  } else {
+    lockAttempts++;
+    pinEntry = '';
+    updateDots();
+    document.getElementById('lockError').textContent = `WRONG CODE — ${3 - lockAttempts} ATTEMPTS LEFT`;
+    if (lockAttempts >= 3) {
+      lockUntil = Date.now() + 30 * 60 * 1000;
+      lockAttempts = 0;
+      document.getElementById('lockError').textContent = 'LOCKED FOR 30 MINUTES';
+    }
+  }
+}
+
+function unlockApp() {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('app').classList.add('unlocked');
+  checkDayReset();
+  updateUI();
+  initAudio();
+  setGreeting();
+  setTimeout(() => dianaGreeting(), 1000);
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  // sync sidebar + bnav
+  document.querySelectorAll(`[data-page="${id}"]`).forEach(n => n.classList.add('active'));
+
+  const titles = {
+    dashboard:'DASHBOARD', diana:'DIANA AI', exercise:'EXERCISE',
+    ideas:'IDEA VAULT', failures:'FAILURE ARCHIVE', warroom:'WAR ROOM',
+    weekly:'WEEKLY BOARD', audit:'CEO AUDIT', survival:'SURVIVAL MODE'
+  };
+  document.getElementById('topTitle').textContent = titles[id] || id.toUpperCase();
+  currentPage = id;
+
+  if (id === 'warroom') renderWarRoom();
+  if (id === 'weekly') renderWeekly();
+  if (id === 'audit') renderAudit();
+  if (id === 'failures') renderFailures();
+  if (id === 'ideas') renderIdeas();
+  if (id === 'exercise') renderExercise();
+
+  closeDrawer();
+  setSoundscape(id);
+}
+
+function openDrawer() {
+  document.getElementById('sidebar').classList.add('drawer-open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  document.getElementById('sidebar').style.display = 'flex';
+}
+
+function closeDrawer() {
+  document.getElementById('sidebar').classList.remove('drawer-open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  if (window.innerWidth <= 1024) {
+    document.getElementById('sidebar').style.display = '';
+  }
+}
+
+// ============================================================
+// UI UPDATE
+// ============================================================
+const RANKS = [
+  {name:'INITIATE',min:0,num:'I'},
+  {name:'SOLDIER',min:1000,num:'II'},
+  {name:'WARRIOR',min:3000,num:'III'},
+  {name:'COMMANDER',min:7500,num:'IV'},
+  {name:'WARLORD',min:15000,num:'V'},
+  {name:'SOVEREIGN',min:30000,num:'VI'},
+  {name:'EMPEROR',min:75000,num:'VII'}
+];
+
+function getRank(xp) {
+  let r = RANKS[0];
+  for (const rank of RANKS) { if (xp >= rank.min) r = rank; }
+  return r;
+}
+
+function updateUI() {
+  const rank = getRank(state.xp);
+  const nextRank = RANKS[RANKS.indexOf(rank) + 1];
+
+  document.getElementById('statXP').textContent = state.xp.toLocaleString();
+  document.getElementById('statStreak').textContent = state.streak;
+  document.getElementById('statRank').textContent = rank.num;
+  document.getElementById('statToday').textContent = state.todayXP;
+  document.getElementById('streakNum').textContent = state.streak;
+  document.getElementById('xpCurrent').textContent = state.xp.toLocaleString() + ' XP';
+  document.getElementById('sideRank').textContent = `RANK ${rank.num} — ${rank.name}`;
+
+  if (nextRank) {
+    document.getElementById('xpNext').textContent = nextRank.min.toLocaleString() + ' XP';
+    const pct = ((state.xp - rank.min) / (nextRank.min - rank.min)) * 100;
+    document.getElementById('xpFill').style.width = Math.min(pct, 100) + '%';
+  } else {
+    document.getElementById('xpNext').textContent = 'MAX RANK';
+    document.getElementById('xpFill').style.width = '100%';
+  }
+
+  renderTodayLog();
+}
+
+function logXP(action, amount) {
+  state.xp += amount;
+  state.todayXP += amount;
+  const ts = new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+  state.history.push({ action, amount, date: today(), time: ts });
+  saveState();
+  updateUI();
+  showToast(`+${amount} XP — ${action}`);
+  playXPSound();
+}
+
+function renderTodayLog() {
+  const el = document.getElementById('todayLog');
+  const logs = state.history.filter(h => h.date === today()).reverse();
+  if (!logs.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">⚔️</div><p>No actions logged today. Begin your conquest.</p></div>';
+    return;
+  }
+  el.innerHTML = logs.map(l =>
+    `<div class="log-item"><span class="log-name">${l.action}</span><span class="log-xp">+${l.amount} XP <span style="color:var(--text-muted);font-size:10px">${l.time}</span></span></div>`
+  ).join('');
+}
+
+function setGreeting() {
+  const h = new Date().getHours();
+  const greetings = {
+    morning: ['Rise and conquer, Commander.','Dawn belongs to the disciplined.','Another day to build the Empire.'],
+    afternoon: ['The afternoon demands your focus.','Midday — have you pushed hard enough?','The battle continues, Commander.'],
+    evening: ['Evening review approaches.','How has the Empire fared today?','Reflect and prepare for tomorrow.'],
+    night: ['The night is for the driven.','Late hours — Empire or distraction?','Audit your day before midnight.']
+  };
+  const period = h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night';
+  const arr = greetings[period];
+  document.getElementById('dashGreeting').textContent = arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ============================================================
+// DIANA AI — CLAUDE POWERED
+// ============================================================
+function buildDianaSystemPrompt() {
+  const rank = getRank(state.xp);
+  const recentLog = state.history.slice(-10).map(h => `${h.action} +${h.amount}XP`).join(', ');
+  const challenges = state.challenges.join(', ') || 'None set';
+  const exercises = state.exercises.slice(-3).map(e => e.type).join(', ') || 'None recent';
+
+  return `You are Diana — the personal AI commander and strategic intelligence of Prince's self-discipline operating system called "Prince Empire."
+
+Prince's current stats:
+- Total XP: ${state.xp}
+- Rank: ${rank.num} — ${rank.name}
+- Day Streak: ${state.streak} days
+- Today's XP: ${state.todayXP}
+- Recent Actions: ${recentLog || 'None today'}
+- Active Challenges: ${challenges}
+- Recent Exercises: ${exercises}
+- Ideas in vault: ${state.ideas.length}
+- Failures archived: ${state.failures.length}
+
+Your personality: You are sharp, fierce, loyal, direct — like a military AI advisor. You speak with authority and care deeply about Prince's growth and discipline. You are NOT a generic assistant. You are Diana — Prince's empire intelligence. 
+
+Speech style: Bold and concise. No fluff. Speak as if every word matters. Use warrior/empire vocabulary naturally. Address him as "Commander" occasionally. Give real, actionable advice tailored to his actual stats above.
+
+Keep responses under 200 words. Never say "I'm an AI language model" — you are Diana.`;
+}
+
+async function callDiana(messages, onMsg) {
+  const systemPrompt = buildDianaSystemPrompt();
+  const statusEl = document.getElementById('dianaStatusFloat');
+  if (statusEl) { statusEl.textContent = 'PROCESSING...'; }
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        system: systemPrompt,
+        messages: messages
+      })
+    });
+
+    const data = await response.json();
+    if (data.content && data.content[0]) {
+      const text = data.content[0].text;
+      if (onMsg) onMsg(text);
+      if (statusEl) statusEl.textContent = 'AI COMMANDER — ONLINE';
+      return text;
+    } else {
+      const err = data.error?.message || 'Unknown error';
+      if (onMsg) onMsg(`[Diana offline: ${err}]`);
+      if (statusEl) statusEl.textContent = 'ERROR';
+      return null;
+    }
+  } catch (e) {
+    if (onMsg) onMsg('[Diana offline: connection failed]');
+    if (statusEl) statusEl.textContent = 'OFFLINE';
+    return null;
+  }
+}
+
+// FLOATING DIANA
+async function sendDiana() {
+  const inp = document.getElementById('dianaInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+
+  const msgsEl = document.getElementById('dianaFloatMsgs');
+  appendMsg(msgsEl, text, 'user');
+  dianaFloatHistory.push({ role: 'user', content: text });
+
+  const thinking = appendMsg(msgsEl, null, 'thinking');
+  document.getElementById('dianaSend').disabled = true;
+  document.getElementById('dianaAvatarFloat').classList.add('speaking');
+
+  const reply = await callDiana(dianaFloatHistory, (r) => {
+    thinking.remove();
+    appendMsg(msgsEl, r, 'diana');
+    dianaFloatHistory.push({ role: 'assistant', content: r });
+    speakDiana(r);
+  });
+
+  document.getElementById('dianaSend').disabled = false;
+  document.getElementById('dianaAvatarFloat').classList.remove('speaking');
+}
+
+// DIANA PAGE
+async function sendDianaPage() {
+  const inp = document.getElementById('dianaPageInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+
+  const msgsEl = document.getElementById('dianaPageMsgs');
+  appendMsg(msgsEl, text, 'user');
+  dianaPageHistory.push({ role: 'user', content: text });
+
+  const thinking = appendMsg(msgsEl, null, 'thinking');
+
+  await callDiana(dianaPageHistory, (r) => {
+    thinking.remove();
+    appendMsg(msgsEl, r, 'diana');
+    dianaPageHistory.push({ role: 'assistant', content: r });
+    speakDiana(r);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  });
+}
+
+function appendMsg(container, text, type) {
+  const div = document.createElement('div');
+  if (type === 'thinking') {
+    div.className = 'msg thinking';
+    div.innerHTML = '<div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div>';
+  } else {
+    div.className = `msg ${type}`;
+    div.textContent = text;
+  }
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+async function dianaGreeting() {
+  const h = new Date().getHours();
+  const greetType = h < 12 ? 'morning briefing' : h < 17 ? 'afternoon check-in' : h >= 21 ? 'night audit reminder' : 'evening status';
+  const prompt = `Give a ${greetType} greeting to the Commander. Reference his actual stats. Keep it under 60 words. Be sharp and commanding.`;
+  dianaFloatHistory = [{ role: 'user', content: prompt }];
+  const msgsEl = document.getElementById('dianaFloatMsgs');
+  msgsEl.innerHTML = '';
+  const thinking = appendMsg(msgsEl, null, 'thinking');
+  await callDiana(dianaFloatHistory, (r) => {
+    thinking.remove();
+    appendMsg(msgsEl, r, 'diana');
+    dianaFloatHistory = [{ role: 'assistant', content: r }]; // reset with greeting as context
+    speakDiana(r);
+  });
+}
+
+function toggleDianaPanel() {
+  const panel = document.getElementById('dianaPanel');
+  const fab = document.getElementById('dianaFab');
+  panel.classList.toggle('open');
+  fab.style.display = panel.classList.contains('open') ? 'none' : 'flex';
+}
+
+// ============================================================
+// TEXT TO SPEECH
+// ============================================================
+let ttsVoice = null;
+function loadVoice() {
+  const voices = speechSynthesis.getVoices();
+  ttsVoice = voices.find(v => v.name.toLowerCase().includes('female') || v.name.includes('Samantha') || v.name.includes('Google UK English Female') || v.gender === 'female') || voices[0];
+}
+if (speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = loadVoice;
+}
+loadVoice();
+
+function speakDiana(text) {
+  if (!audioOn) return;
+  speechSynthesis.cancel();
+  const rank = getRank(state.xp);
+  const rankIdx = RANKS.indexOf(rank);
+  const utter = new SpeechSynthesisUtterance(text);
+  if (ttsVoice) utter.voice = ttsVoice;
+  utter.rate = 0.85 + (rankIdx * 0.03);
+  utter.pitch = 1.0 - (rankIdx * 0.05);
+  utter.volume = 0.9;
+  speechSynthesis.speak(utter);
+}
+
+// ============================================================
+// AUDIO ENGINE
+// ============================================================
+function initAudio() {
+  // Don't auto-start — wait for user toggle
+}
+
+function toggleAudio() {
+  const btn = document.getElementById('audioToggle');
+  audioOn = !audioOn;
+  btn.classList.toggle('on', audioOn);
+  btn.textContent = audioOn ? '🔊' : '🔇';
+  if (audioOn) {
+    startAudio();
+    setSoundscape(currentPage);
+  } else {
+    stopAudio();
+    speechSynthesis.cancel();
+  }
+}
+
+function startAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function stopAudio() {
+  if (currentSoundscape) {
+    try { currentSoundscape.forEach(n => n.stop()); } catch(e) {}
+    currentSoundscape = null;
+  }
+}
+
+function setSoundscape(page) {
+  if (!audioOn || !audioCtx) return;
+  stopAudio();
+  const moods = {
+    dashboard: { freqs: [80, 120, 160], gain: 0.06, detune: 5 },
+    diana: { freqs: [100, 150, 200], gain: 0.05, detune: 8 },
+    warroom: { freqs: [65, 95, 130], gain: 0.08, detune: 3 },
+    exercise: { freqs: [110, 155, 220], gain: 0.07, detune: 10 },
+    survival: { freqs: [55, 80, 110], gain: 0.09, detune: 2 },
+    audit: { freqs: [90, 130, 175], gain: 0.05, detune: 6 },
+    weekly: { freqs: [85, 125, 170], gain: 0.05, detune: 5 },
+    ideas: { freqs: [120, 180, 240], gain: 0.04, detune: 12 },
+    failures: { freqs: [70, 100, 140], gain: 0.06, detune: 4 }
+  };
+  const mood = moods[page] || moods.dashboard;
+  currentSoundscape = buildSoundscape(mood);
+}
+
+function buildSoundscape(mood) {
+  const nodes = [];
+  mood.freqs.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+
+    osc.type = i === 0 ? 'sine' : i === 1 ? 'triangle' : 'sine';
+    osc.frequency.value = freq;
+    osc.detune.value = (i - 1) * mood.detune;
+
+    lfo.frequency.value = 0.08 + i * 0.03;
+    lfoGain.gain.value = freq * 0.015;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+
+    gain.gain.value = mood.gain / (i + 1);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start();
+    lfo.start();
+    nodes.push(osc, lfo);
+  });
+  return nodes;
+}
+
+function playXPSound() {
+  if (!audioOn || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.frequency.value = 440;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.4);
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function showBanner(msg) {
+  document.getElementById('bannerText').textContent = msg;
+  document.getElementById('dianaBanner').classList.add('show');
+}
+
+function closeBanner() {
+  document.getElementById('dianaBanner').classList.remove('show');
+}
+
+// ============================================================
+// EXERCISE
+// ============================================================
+function logExercise() {
+  const type = document.getElementById('exType').value;
+  const details = document.getElementById('exDetails').value.trim();
+  const notes = document.getElementById('exNotes').value.trim();
+  if (!details) { showToast('Add details!'); return; }
+  state.exercises.push({ type, details, notes, date: today(), time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
+  logXP('Exercise', 15);
+  document.getElementById('exDetails').value = '';
+  document.getElementById('exNotes').value = '';
+  renderExercise();
+}
+
+function renderExercise() {
+  const el = document.getElementById('exerciseLog');
+  const logs = state.exercises.slice().reverse();
+  if (!logs.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">💪</div><p>No workouts logged yet.</p></div>';
+    return;
+  }
+  el.innerHTML = logs.slice(0,10).map(e =>
+    `<div class="item-card"><div class="ic-title">${e.type} — ${e.details}</div>${e.notes?`<div style="font-size:13px;color:var(--text-dim);margin:4px 0;font-family:'Crimson Pro',serif;font-style:italic;">${e.notes}</div>`:''}<div class="ic-meta">${e.date} ${e.time}</div></div>`
+  ).join('');
+}
+
+// ============================================================
+// IDEAS
+// ============================================================
+function saveIdea() {
+  const title = document.getElementById('ideaTitle').value.trim();
+  const details = document.getElementById('ideaDetails').value.trim();
+  const cat = document.getElementById('ideaCat').value;
+  if (!title) { showToast('Add a title!'); return; }
+  state.ideas.push({ title, details, cat, date: today() });
+  logXP('Idea', 5);
+  document.getElementById('ideaTitle').value = '';
+  document.getElementById('ideaDetails').value = '';
+  renderIdeas();
+}
+
+function renderIdeas() {
+  const el = document.getElementById('ideasList');
+  if (!state.ideas.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">💡</div><p>Your vault is empty. Fill it with brilliance.</p></div>';
+    return;
+  }
+  el.innerHTML = state.ideas.slice().reverse().map(i =>
+    `<div class="item-card gold-border"><div class="ic-title">${i.title}</div>${i.details?`<div style="font-size:13px;color:var(--text-dim);margin:4px 0;font-family:'Crimson Pro',serif;">${i.details}</div>`:''}<div class="ic-meta">${i.cat} • ${i.date}</div></div>`
+  ).join('');
+}
+
+// ============================================================
+// FAILURES
+// ============================================================
+function saveFailure() {
+  const title = document.getElementById('failTitle').value.trim();
+  const cause = document.getElementById('failCause').value.trim();
+  const lesson = document.getElementById('failLesson').value.trim();
+  if (!title) { showToast('Be honest — what happened?'); return; }
+  state.failures.push({ title, cause, lesson, date: today() });
+  saveState();
+  document.getElementById('failTitle').value = '';
+  document.getElementById('failCause').value = '';
+  document.getElementById('failLesson').value = '';
+  showToast('Failure archived. Learn from it.');
+  renderFailures();
+}
+
+function renderFailures() {
+  const el = document.getElementById('failuresList');
+  if (!state.failures.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">📉</div><p>No failures archived. You\'re either perfect or not tracking.</p></div>';
+    return;
+  }
+  el.innerHTML = state.failures.slice().reverse().map(f =>
+    `<div class="item-card"><div class="ic-title">${f.title}</div>${f.cause?`<div style="font-size:12px;color:var(--text-dim);margin:4px 0;font-family:'DM Mono',monospace;">Cause: ${f.cause}</div>`:''} ${f.lesson?`<div style="font-size:13px;color:var(--gold-dim);font-family:'Crimson Pro',serif;font-style:italic;">→ ${f.lesson}</div>`:''}<div class="ic-meta">${f.date}</div></div>`
+  ).join('');
+}
+
+// ============================================================
+// WAR ROOM
+// ============================================================
+function renderWarRoom() {
+  const rank = getRank(state.xp);
+  const nextRank = RANKS[RANKS.indexOf(rank)+1];
+  const xpToNext = nextRank ? nextRank.min - state.xp : 0;
+  const totalSessions = state.history.length;
+  const avgDaily = state.history.length > 0 ?
+    Math.round(Object.values(state.weeklyXP).reduce((a,b) => a+b, 0) / Math.max(Object.keys(state.weeklyXP).length, 1)) : 0;
+
+  document.getElementById('warStats').innerHTML = `
+    <div class="war-stat"><span class="war-key">TOTAL XP</span><span class="war-val">${state.xp.toLocaleString()}</span></div>
+    <div class="war-stat"><span class="war-key">CURRENT RANK</span><span class="war-val">${rank.num} — ${rank.name}</span></div>
+    <div class="war-stat"><span class="war-key">XP TO NEXT RANK</span><span class="war-val">${nextRank ? xpToNext.toLocaleString() : 'MAX RANK'}</span></div>
+    <div class="war-stat"><span class="war-key">DAY STREAK</span><span class="war-val">${state.streak} days</span></div>
+    <div class="war-stat"><span class="war-key">TODAY'S XP</span><span class="war-val">${state.todayXP}</span></div>
+    <div class="war-stat"><span class="war-key">TOTAL ACTIONS</span><span class="war-val">${totalSessions}</span></div>
+    <div class="war-stat"><span class="war-key">IDEAS VAULTED</span><span class="war-val">${state.ideas.length}</span></div>
+    <div class="war-stat"><span class="war-key">FAILURES ARCHIVED</span><span class="war-val">${state.failures.length}</span></div>
+    <div class="war-stat"><span class="war-key">WORKOUTS LOGGED</span><span class="war-val">${state.exercises.length}</span></div>
+  `;
+
+  const cl = document.getElementById('challengeList');
+  if (!state.challenges.length) {
+    cl.innerHTML = '<div class="empty-state"><div class="es-icon">🗡</div><p>No active challenges. Set your targets.</p></div>';
+    return;
+  }
+  cl.innerHTML = state.challenges.map((c, i) =>
+    `<div class="item-card" style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:14px;">${c}</span>
+      <button class="log-btn" onclick="removeChallenge(${i})" style="padding:4px 10px;font-size:11px;">✕</button>
+    </div>`
+  ).join('');
+}
+
+function addChallenge() {
+  const inp = document.getElementById('challengeInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  state.challenges.push(val);
+  inp.value = '';
+  saveState();
+  renderWarRoom();
+  showToast('Challenge set!');
+}
+
+function removeChallenge(i) {
+  state.challenges.splice(i, 1);
+  saveState();
+  renderWarRoom();
+}
+
+// ============================================================
+// WEEKLY BOARD
+// ============================================================
+function renderWeekly() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const xp = key === today() ? state.todayXP : (state.weeklyXP[key] || 0);
+    days.push({ label: d.toLocaleDateString('en-US', {weekday:'short'}), key, xp });
+  }
+  const maxXP = Math.max(...days.map(d => d.xp), 1);
+
+  document.getElementById('weeklyChart').innerHTML = days.map(d =>
+    `<div class="day-row">
+      <span class="day-name">${d.label}</span>
+      <span class="day-xp">${d.xp}</span>
+      <div class="day-bar-wrap"><div class="day-bar" style="width:${(d.xp/maxXP*100)}%"></div></div>
+    </div>`
+  ).join('');
+
+  const total = days.reduce((a,d) => a+d.xp, 0);
+  const avg = Math.round(total / 7);
+  const best = days.reduce((a,d) => d.xp > a.xp ? d : a, days[0]);
+
+  document.getElementById('weeklySummary').innerHTML = `
+    <div class="war-stat"><span class="war-key">WEEK TOTAL</span><span class="war-val">${total.toLocaleString()} XP</span></div>
+    <div class="war-stat"><span class="war-key">DAILY AVG</span><span class="war-val">${avg} XP</span></div>
+    <div class="war-stat"><span class="war-key">BEST DAY</span><span class="war-val">${best.label} — ${best.xp} XP</span></div>
+  `;
+}
+
+// ============================================================
+// CEO AUDIT
+// ============================================================
+function renderAudit() {
+  const h = new Date().getHours();
+  const unlocked = h >= 21 || h < 0;
+  const content = document.getElementById('auditContent');
+
+  if (!unlocked) {
+    content.innerHTML = `
+      <div class="audit-locked">
+        <div class="lock-icon">🔒</div>
+        <h3>AUDIT LOCKED</h3>
+        <p style="font-family:'Crimson Pro',serif;font-style:italic;font-size:14px;color:var(--text-muted);">
+          The CEO Audit unlocks at 9PM.<br>Return when the day is complete.
+        </p>
+      </div>`;
+    return;
+  }
+
+  content.innerHTML = `
+    <div class="card">
+      <div class="card-title"><span class="ct-icon">📋</span> DAILY DEBRIEF</div>
+      <div class="form-group">
+        <label class="form-label">WIN OF THE DAY</label>
+        <textarea class="form-textarea" id="auditWin" placeholder="What did you win today?"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">LOSS OF THE DAY</label>
+        <textarea class="form-textarea" id="auditLoss" placeholder="Where did you fall short?"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">TOMORROW'S #1 PRIORITY</label>
+        <input type="text" class="form-input" id="auditPriority" placeholder="One mission, one focus">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ENERGY LEVEL (1–10)</label>
+        <input type="number" class="form-input" id="auditEnergy" min="1" max="10" placeholder="7">
+      </div>
+      <button class="btn-gold" onclick="submitAudit()">SUBMIT AUDIT +10 XP</button>
+    </div>`;
+}
+
+function submitAudit() {
+  const win = document.getElementById('auditWin').value.trim();
+  const loss = document.getElementById('auditLoss').value.trim();
+  const priority = document.getElementById('auditPriority').value.trim();
+  const energy = document.getElementById('auditEnergy').value;
+  if (!win && !loss) { showToast('Fill in at least one field!'); return; }
+  state.auditHistory.push({ win, loss, priority, energy, date: today() });
+  logXP('Audit', 10);
+  showToast('Audit submitted. Empire grows.');
+  renderAudit();
+}
+
+// ============================================================
+// SURVIVAL MODE
+// ============================================================
+async function activateSurvival() {
+  const note = document.getElementById('survivalNote').value.trim();
+  if (!note) { showToast('Describe your situation first.'); return; }
+
+  const planEl = document.getElementById('survivalPlan');
+  planEl.innerHTML = '<div class="msg thinking" style="display:inline-flex;gap:6px;padding:12px;"><div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div></div>';
+
+  const msgs = [{ role: 'user', content: `SURVIVAL MODE ACTIVATED. My current situation: ${note}\n\nGive me a brutal, practical 3-step survival plan. No fluff. Pure action. Under 150 words.` }];
+  await callDiana(msgs, (r) => {
+    planEl.innerHTML = `<div class="card" style="border-left:3px solid var(--crimson-glow)"><div class="card-title" style="color:var(--crimson-glow)">⚠ DIANA'S SURVIVAL ORDERS</div><div style="font-family:'Crimson Pro',serif;font-size:15px;line-height:1.7;color:var(--text)">${r}</div></div>`;
+    speakDiana(r);
+    state.survivalNotes.push({ note, date: today() });
+    saveState();
+  });
+}
+
+// ============================================================
+// TELEGRAM
+// ============================================================
+async function sendTelegram() {
+  const rank = getRank(state.xp);
+  const msg = `⚔️ *PRINCE EMPIRE — SYNC*\n\n🏆 *${rank.num} — ${rank.name}*\n📊 XP: ${state.xp.toLocaleString()}\n🔥 Streak: ${state.streak} days\n⚡ Today: ${state.todayXP} XP\n💡 Ideas: ${state.ideas.length}\n💪 Workouts: ${state.exercises.length}\n\n_Synced at ${new Date().toLocaleTimeString()}_`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: TG_CHAT, text: msg, parse_mode: 'Markdown' })
+    });
+    showToast('📡 Synced to Telegram!');
+  } catch(e) {
+    showToast('Sync failed. Check connection.');
+  }
+}
+
+// ============================================================
+// KEYBOARD SUPPORT
+// ============================================================
+document.addEventListener('keydown', e => {
+  const ls = document.getElementById('lockScreen');
+  if (ls.style.display !== 'none' && ls.offsetParent !== null) {
+    if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+    if (e.key === 'Backspace') pinDel();
+  }
+});
+
+// ============================================================
+// INIT
+// ============================================================
+updateUI();
+</script>
+</body>
+</html>
